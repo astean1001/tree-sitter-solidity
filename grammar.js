@@ -752,7 +752,7 @@ module.exports = grammar({
 
         inline_array_expression: $ => seq('[', commaSep($._expression), ']' ),
 
-        binary_expression: $ => choice(
+        binary_expression: $ => prec(1, choice(
             ...[
             ['&&', PREC.AND],
             ['||', PREC.OR],
@@ -782,7 +782,7 @@ module.exports = grammar({
                     field('right', $._expression)
                 ))
             )
-        ),
+        )),
 
         unary_expression: $ => choice(...[
                 ['!', PREC.NOT],

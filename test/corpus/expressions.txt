@@ -485,7 +485,6 @@ contract Example {
         identifier;
         1;
         user.type;
-        uint;
     }
 }
 --------------------------------------------------------------------------------
@@ -512,9 +511,7 @@ contract Example {
           (expression_statement
             (member_expression
               (identifier)
-              (identifier)))
-          (expression_statement
-            (primitive_type)))))))
+              (identifier))))))))
 
 ================================================================================
 New expression
@@ -583,9 +580,10 @@ contract Example {
         (identifier)
         (function_body
           (expression_statement
-            (type_cast_expression
+            (call_expression
               (primitive_type)
-              (number_literal))))))))
+              (call_argument
+                (number_literal)))))))))
 
 ================================================================================
 Type Expression
@@ -643,3 +641,31 @@ contract Example {
                 (number_literal))
               (call_argument
                 (identifier)))))))))
+
+================================================================================
+Member Access with Binary Expression
+================================================================================
+
+contract xxxx {
+    function xxxx() {
+        if(xxx != type(uint256).max){}
+    }
+}
+--------------------------------------------------------------------------------
+
+(source_file
+  (contract_declaration
+    (identifier)
+    (contract_body
+      (function_definition
+        (identifier)
+        (function_body
+          (if_statement
+            (binary_expression
+              (identifier)
+              (member_expression
+                (meta_type_expression
+                  (type_name
+                    (primitive_type)))
+                (identifier)))
+            (block_statement)))))))

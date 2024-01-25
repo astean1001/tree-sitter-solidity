@@ -26,8 +26,8 @@ const PREC = {
     NEW: 13,
     ARRAY: 14,
     SLICE: 15,
-    REVERT: 15,
-    MEMBER: 1
+    REVERT: 17,
+    MEMBER: 16,
 }
 
 // The following is the core grammar for Solidity. It accepts Solidity smart contracts between the versions 0.4.x and 0.7.x.
@@ -50,14 +50,13 @@ module.exports = grammar({
         // The following conflicts are all due to the array type and array access expression ambiguity
         [$._primary_expression, $.type_name],
         [$._primary_expression, $._identifier_path],
-        [$._primary_expression, $.member_expression, $._identifier_path],
-        [$.member_expression, $._identifier_path],
+        // [$._primary_expression, $.member_expression, $._identifier_path],
+        // [$.member_expression, $._identifier_path],
 
         // This is to deal with an ambiguity due to different revert styles
         [$._call_arguments, $.tuple_expression],
 
         [$._parameter_list, $.fallback_receive_definition],
-        [$._primary_expression, $.type_cast_expression],
         [$.pragma_value, $._solidity],
         [$.variable_declaration_tuple, $.tuple_expression],
         
@@ -306,8 +305,8 @@ module.exports = grammar({
         // -- [ Statements ] --
         _statement: $ => choice(
             $.block_statement,
-            $.expression_statement,
             $.variable_declaration_statement,
+            $.expression_statement,
             $.if_statement,
             $.for_statement,
             $.while_statement,
@@ -485,7 +484,7 @@ module.exports = grammar({
         // -- [ Statements ] --
         _unchecked: $ => "unchecked",
         block_statement: $ => seq(optional($._unchecked), '{', repeat($._statement), "}"),
-        variable_declaration_statement: $ => prec(1,seq(
+        variable_declaration_statement: $ => prec(2,seq(
                 choice(
                     seq($.variable_declaration, optional(seq('=', field("value", $._expression)))),
                     seq($.variable_declaration_tuple, '=', field("value", $._expression)),
@@ -723,10 +722,9 @@ module.exports = grammar({
             $._primary_expression,
             $.struct_expression,
             $.ternary_expression,
-            $.type_cast_expression,
         ),
 
-        _primary_expression: $ => choice(
+        _primary_expression: $ => prec(1,choice(
             $.parenthesized_expression,
             $.member_expression,
             $.array_access,
@@ -734,16 +732,12 @@ module.exports = grammar({
             $.primitive_type,
             $.assignment_expression,
             $.augmented_assignment_expression,
-            $.user_defined_type,
             $.tuple_expression,
             $.inline_array_expression,
             $.identifier,
             $._literal,
             $.new_expression,
-        ),
-
-        // TODO: back this up with official documentation
-        type_cast_expression: $ => prec.left(seq($.primitive_type, '(', $._expression,')')),
+        )),
 
         ternary_expression: $ => prec.left(seq($._expression, "?", $._expression, ':', $._expression)),
 
@@ -810,7 +804,7 @@ module.exports = grammar({
             ),
         )),
 
-        member_expression: $ => prec.dynamic(1, seq(
+        member_expression: $ => prec.left(PREC.MEMBER, seq(
             field('object', choice(
                 $._expression,
                 $.identifier,
@@ -871,13 +865,13 @@ module.exports = grammar({
         payable_conversion_expression: $ => seq('payable', $._call_arguments),
         meta_type_expression: $ => seq('type', '(', $.type_name, ')'),
 
-        type_name: $ => choice(
+        type_name: $ => prec(1,choice(
             $.primitive_type,
             $.user_defined_type,
             $._mapping,
             $._array_type,
             $._function_type,
-        ),
+        )),
 
         _array_type: $ => prec(1, seq($.type_name, '[', optional($._expression), ']')),
 
@@ -918,7 +912,7 @@ module.exports = grammar({
 
         user_defined_type: $ => $._identifier_path,            
         
-        _identifier_path: $ => prec.left(dotSep1( $.identifier)),
+        _identifier_path: $ => prec.left(1,dotSep2( $.identifier)),
 
         _mapping: $ => seq(
             'mapping', '(', 
@@ -1073,6 +1067,18 @@ function dotSep1(rule) {
                 '.',
                 rule
             )
+        ),
+    );
+}
+
+function dotSep2(rule) {
+    return seq(
+        rule,
+        repeat(
+            prec(PREC.MEMBER + 2,seq(
+                '.',
+                rule
+            ))
         ),
     );
 }

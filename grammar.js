@@ -24,7 +24,9 @@ const PREC = {
     INC: 11,
     CALL: 12,
     NEW: 13,
-    REVERT: 14,
+    ARRAY: 14,
+    SLICE: 15,
+    REVERT: 15,
     MEMBER: 1
 }
 
@@ -752,7 +754,7 @@ module.exports = grammar({
 
         inline_array_expression: $ => seq('[', commaSep($._expression), ']' ),
 
-        binary_expression: $ => prec(1, choice(
+        binary_expression: $ => choice(
             ...[
             ['&&', PREC.AND],
             ['||', PREC.OR],
@@ -782,7 +784,7 @@ module.exports = grammar({
                     field('right', $._expression)
                 ))
             )
-        )),
+        ),
 
         unary_expression: $ => choice(...[
                 ['!', PREC.NOT],
@@ -817,21 +819,21 @@ module.exports = grammar({
             field('property', $.identifier)
         )),
 
-        array_access: $ => seq(
+        array_access: $ => prec.left(PREC.ARRAY, seq(
             field('base', $._expression),
             '[',
             optional(field('index', $._expression)),
             ']'
-        ),
+        )),
 
-        slice_access: $ => seq(
+        slice_access: $ => prec.left(PREC.SLICE, seq(
             field('base', $._expression),
             '[',
             optional(field('from', $._expression)),
             ':',
             optional(field('to', $._expression)),
             ']'
-        ),
+        )),
 
         struct_expression: $ => seq(
             field("type", $._expression),
